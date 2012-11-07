@@ -1,4 +1,6 @@
-examples
-========
+Przykłady kodu
+==============
 
-Przykłady kodu na zajęcia 
+Przykładowe programy na zajęcia prowadzone w ramach specjalności Sieci komputerowe i systemy rozproszone na Wydziale Informatyki Politechniki Poznańskiej.
+
+
