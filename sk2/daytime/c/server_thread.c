@@ -1,8 +1,5 @@
 /* 
-Copyright (c) 2006 Michal Kalewski 
-and 2012 Jan Lamecki
-*/
-
+Copyright (c) 2006 Michal Kalewski */
 /* Permission is hereby granted, free of charge, to any person obtaining a copy of  */
 /* this software and associated documentation files (the "Software"), to deal in  */
 /* the Software without restriction, including without limitation the rights to  */
@@ -21,6 +18,7 @@ and 2012 Jan Lamecki
 /* SOFTWARE. 
 */
 
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -31,25 +29,40 @@ and 2012 Jan Lamecki
 #include <string.h>
 #include <arpa/inet.h>
 #include <time.h>
+#include <pthread.h>
 
 #define SERVER_PORT 1234
 #define QUEUE_SIZE 5
 
-void childend(int signo)
+struct client_context {
+  int socket;
+  struct sockaddr_in addr;
+  const char *name;
+};
+
+void * client_thread(void * arg)
 {
-   pid_t pid;
-   pid = wait(NULL);
-   printf("\t[end of child process number %d]\n", pid);
+  struct client_context *ctx = (struct client_context *) arg;
+  printf("%s: [connection from %s]\n",
+      ctx->name, inet_ntoa((struct in_addr)ctx->addr.sin_addr));
+  time_t now;
+  struct tm *local;
+  time (&now);
+  local = localtime(&now);
+  char buffer[50];
+  int n = sprintf(buffer, "%s\n", asctime(local));
+  write(ctx->socket, buffer, n);
+  close(ctx->socket);
+  free(ctx);
+  return NULL;
 }
 
 int main(int argc, char* argv[])
 {
-   int nSocket, nClientSocket;
+   int nSocket;
    int nBind, nListen;
-   int nFoo = 1, nTmp;
-   struct sockaddr_in stAddr, stClientAddr;
-
-   signal(SIGCHLD, childend);
+   int nFoo = 1;
+   struct sockaddr_in stAddr;
 
    /* address structure */
    memset(&stAddr, 0, sizeof(struct sockaddr));
@@ -83,30 +96,19 @@ int main(int argc, char* argv[])
    while(1)
    {
        /* block for connection request */
-       nTmp = sizeof(struct sockaddr);
-       nClientSocket = accept(nSocket, (struct sockaddr*)&stClientAddr, &nTmp);
-       if (nClientSocket < 0)
+       struct client_context *ctx = malloc(sizeof(struct client_context));
+       socklen_t nTmp = sizeof(ctx->addr);
+       ctx->socket = accept(nSocket, (struct sockaddr*)&ctx->addr, &nTmp);
+       ctx->name = argv[0];
+       if (ctx->socket < 0)
        {
            fprintf(stderr, "%s: Can't create a connection's socket.\n", argv[0]);
            exit(1);
        }
 
-       /* connection */
-       if (fork() == 0)
-       {
-           printf("%s: [connection from %s]\n",
-                  argv[0], inet_ntoa((struct in_addr)stClientAddr.sin_addr));
-           time_t now;
-           struct tm *local;
-           time (&now);
-           local = localtime(&now);
-           char buffer[50];
-           int n;
-           n = sprintf(buffer, "%s\n", asctime(local));
-           write(nClientSocket, buffer, n);
-           close(nClientSocket);
-           exit(0);
-       }
+       /* create thread */
+       pthread_t id;
+       pthread_create(&id, NULL, client_thread, ctx);
    }
 
    close(nSocket);
