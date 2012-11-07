@@ -20,8 +20,9 @@ and 2012 Jan Lamecki
 /* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE  */
 /* SOFTWARE. 
 */
-
+#include <unistd.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -46,7 +47,8 @@ int main(int argc, char* argv[])
 {
    int nSocket, nClientSocket;
    int nBind, nListen;
-   int nFoo = 1, nTmp;
+   int nFoo = 1;
+   socklen_t nTmp;
    struct sockaddr_in stAddr, stClientAddr;
 
    signal(SIGCHLD, childend);

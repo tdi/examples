@@ -37,17 +37,20 @@ Copyright (c) 2006 Michal Kalewski, Jan Lamecki, Dariusz Dwornikowski
 #define SERVER_PORT 1234
 #define QUEUE_SIZE 5
 
+/* struct, which packs arguments for client_thread function */
 struct client_context {
   int socket;
   struct sockaddr_in addr;
   const char *name;
 };
 
+/* a function called in a thread, arg is a client_context structure passed */
 void * client_thread(void * arg)
 {
   struct client_context *ctx = (struct client_context *) arg;
   printf("%s: [connection from %s]\n",
       ctx->name, inet_ntoa((struct in_addr)ctx->addr.sin_addr));
+  /* time structures to return to a client */
   time_t now;
   struct tm *local;
   time (&now);
@@ -57,7 +60,7 @@ void * client_thread(void * arg)
   write(ctx->socket, buffer, n);
   close(ctx->socket);
   free(ctx);
-  return NULL;
+  return NULL; // FIXME: return some status value, not a NULL
 }
 
 int main(int argc, char* argv[])
